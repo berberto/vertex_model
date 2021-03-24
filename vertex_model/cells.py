@@ -5,6 +5,12 @@
 
 import numpy as np
 
+# Add test function
+
+def RebecaFunction():
+    print("Boop boop")
+
+
 
 class Cells(object):
     def __init__(self, mesh, properties=None):
