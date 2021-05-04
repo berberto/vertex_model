@@ -165,7 +165,7 @@ def simulation_with_division(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand
 
         
  # simulation with division and INM (no differentiation rate domain) # type 0 Rebeca model 1 -> type 4
-def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
+def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None, k=40, D=0.1): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
     properties = cells.properties
     properties['parent'] = cells.mesh.face_ids #save the ids to control division parents-daugthers 
     properties['ageingrate'] = np.random.normal(1.0/lifespan,0.2/lifespan,len(cells)) #degradation rate per each cell
