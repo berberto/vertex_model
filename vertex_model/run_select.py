@@ -105,31 +105,7 @@ def simulation_with_division(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand
         N_S=0 
         N_G2=1.0/(t_G2)*(properties['age']-(t_G1+t_S))
         properties['zposn'] = np.minimum(1.0,np.maximum(N_G1,np.maximum(N_S,N_G2)))
-        
 
-        
-        """
-        print(properties.keys())
-
-        for age in properties['zposn']:
-            
-            # G1 Phase
-            print(properties['age'])
-            if 0 <= properties['age'] <= t_G1:
-                properties['zposn'] = 1-1.0/t_G1*properties['age']
-            # S Phase
-            elif t_G1 < properties['age'] <= t_G1+t_S:
-                properties['zposn'] = 0.0
-            # G2 phase
-            elif t_G1+t_S < properties['age'] <= t_G1+t_S+t_G2:
-                properties['zposn'] = 1.0/(t_G2)*(properties['age']-(t_G1+t_S))
-            # M phase
-            elif t_G1+t_S+t_G2 < properties['age']:
-                properties['zposn'] = 1.0
-
-            print("REBECA TEST")
-        """ 
-        
         
         """Target area function depending age and z nuclei position"""
         properties['A0'] = (properties['age']+1.0)*0.5*(1.0+properties['zposn']**2)
@@ -174,15 +150,16 @@ def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
     properties['force_y'] = []
     properties['T1_angle_pD'] = []
     properties['Division_angle_pD'] = []
-    properties['nucl_pos'] = []
+    properties['nucl_pos'] = properties['zposn'].copy()
     expansion = np.array([0.0,0.0])
     while True:
         #cells id where is true the division conditions: living cells & area greater than 2 & age cell in mitosis 
         ready = np.where(~cells.empty() & (cells.mesh.area>=A_c) & (cells.properties['age']>=(t_G1+t_S+t_G2)))[0]  
         if len(ready): #these are the cells ready to undergo division at the current timestep
-            properties['ageingrate'] =np.append(properties['ageingrate'], np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready))))
+            properties['ageingrate'] = np.append(properties['ageingrate'], np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready))))
             properties['age'] = np.append(properties['age'],np.zeros(2*len(ready)))
             properties['parent'] = np.append(properties['parent'],np.repeat(properties['parent'][ready],2))  # Daugthers and parent have the same ids
+            properties['nucl_pos'] = np.append(properties['nucl_pos'], np.ones(2*len(ready)))
             properties['ids_division'] = ready
             edge_pairs = [division_axis(cells.mesh,cell_id,rand) for cell_id in ready] #New edges after division 
             cells.mesh = cells.mesh.add_edges(edge_pairs) #Add new edges in the mesh
@@ -197,6 +174,7 @@ def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         N_S=0 
         N_G2=1.0/(t_G2)*(properties['age']-(t_G1+t_S))
         properties['zposn'] = np.minimum(1.0,np.maximum(N_G1,np.maximum(N_S,N_G2)))
+
         properties['nucl_pos'] += k*(properties['zposn'] - properties['nucl_pos'])*dt + np.sqrt(2*D*dt)*np.random.randn(len(properties['zposn']))
         
         
@@ -782,7 +760,7 @@ def run_simulation_INM(x, timend,rand, sim_type):
     #sim_type 1 simulation_with_division_clone_differentiation (all differentiation rate)
     #sim_type 2 simulation_with_division_clone_differenciation_3stripes (2 population with and without diffentiation rate)
     #sim_type 3 simulation_with_division_clone_whole_tissue_differenciation (differentiation rate everywhere)
-    print(dt)
+    # print(dt)
     K=x[0]
     G=x[1]
     L=x[2]
@@ -791,6 +769,7 @@ def run_simulation_INM(x, timend,rand, sim_type):
     mesh = init.toroidal_hex_mesh(20,20,noise=0.2,rand=rand1)
     cells = model.Cells(mesh,properties={'K':K,'Gamma':G,'P':0.0,'boundary_P':P,'Lambda':L, 'Lambda_boundary':0.5})
     cells.properties['age'] = np.random.rand(len(cells))
+
     force = TargetArea()  + Perimeter() + Pressure()
     
     
@@ -799,8 +778,8 @@ def run_simulation_INM(x, timend,rand, sim_type):
     cells.properties['parent_group'] = np.zeros(len(cells),dtype=int) #use to draw clone
     cells.properties['parent_group'] = bin_by_xpos(cells,np.cumsum([0.475,0.5,0.475]))
 
- 
-    history1 = run(simulation_with_division(cells,force,rand=rand1),200/dt,50.0/dt)
+    print("Start thermalization...")
+    history1 = run(simulation_with_division(cells,force,rand=rand1),2.0/dt,0.5/dt)
     cells = history1[-1].copy() #last timestep in the 'thermalization' phase -> use this as the initial condition for the actual run below
     # sampleset = np.random.choice(cells.mesh.face_ids,20, replace=False) #take 7 different ramdon cells to follow clones
 
@@ -809,16 +788,16 @@ def run_simulation_INM(x, timend,rand, sim_type):
     cells.properties['parent'] = cells.mesh.face_ids #save the ids to control division parents-daugthers 
     cells.properties['parent_group'] = bin_by_xpos(cells,np.cumsum([0.225, 0.15, 0.075, 0.1, 0.075, 0.15, 0.225]))
 
+    print(f"Start simulation of type {sim_type}...")
     # sampleset = np.random.choice(cells.mesh.face_ids[cells.properties['parent_group']==1],10, replace=False) #take 10 different ramdon cells to follow clones
     if sim_type == 0:
-        history = run(simulation_with_division_clone(cells,force,rand=rand),(timend),1.0)
+        history = run(simulation_with_division_clone(cells,force,rand=rand),(timend)/dt,1.0/dt)
         history[-1].properties['parent_group'] = np.zeros(len(history[-1].properties['parent_group']),dtype=int)
     if sim_type == 1:
         history = run(simulation_with_division_clone_differentiation(cells,force,rand=rand),(timend)/dt,1.0/dt)
         history[-1].properties['parent_group'] = np.zeros(len(history[-1].properties['parent_group']),dtype=int)+1
     if sim_type == 2:
         #we take ventral and dorsal time per phase cell cycle if we are in the 2 pop part, because pNM are ventral and pD are dorsal
-   
         history = run(simulation_with_division_clone_differenciation_3stripes(cells,force,rand=rand),(timend)/dt,1.0/dt)
         cells.properties['parent_group'] = cells.properties['parent_group'] #+np.array([3 if x in sampleset else 0 for x in cells.properties['parent']])
     if sim_type == 3:
