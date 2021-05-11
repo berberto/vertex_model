@@ -139,6 +139,89 @@ def simulation_with_division(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand
         cells.mesh = cells.mesh.moved(dv).scaled(1.0+expansion)
         yield cells 
 
+def pairwise_crowding_force (delta_z, a=1.0, s=0.1):
+    '''
+    Calculates the pairwise contributions for the crowding force as a 
+    function of the difference in AB nuclear position between neighbouring
+    cells.
+    It accepts as input an array (and the function is applied element-wise)
+    '''
+    y = delta_z/s
+    return a * np.exp(-y**2/2.)*y
+
+def crowding_force (cells, a=1.0, s=0.1):
+    '''
+    For every cell calculate the total crowding force
+    as the sum over its neighbours of the pairwise crowding force
+
+    '''
+
+    # Get the positions of all the nuclei.
+    nucl_pos = cells.properties['nucl_pos']
+
+    '''
+    Get the ids of cells by their edges. The arrays obtained have
+    a length equal to the number of edges, so many their entries
+    are repeated as many times as the neighbours of each cell
+    '''
+    cell_ids = cells.mesh.face_id_by_edge   # ids of faces/cells
+    neig_ids = cell_ids[cells.mesh.reverse] # ids of their neighbours
+
+    '''
+    checking if the cells alive correspond to the ids. This should **always**
+    be the case when there is NO differentiation.
+    '''
+    # print(np.where(~cells.empty())[0] == np.sort(np.unique(cell_ids)))
+
+    '''
+    position of nuclei in cells and their neighbours.
+    Same as above, many entries in "z" and "zn" are repeated, because we are
+    going through cells via the edges
+    '''
+    z  = np.take(nucl_pos, cell_ids) # cells of interest
+    zn = np.take(nucl_pos, neig_ids) # their neighbours
+
+    '''
+    calculate the difference in nucl_pos between neighbouring cells.
+    Here there are NOT going to be repeated entries, in general (if not due to
+    coincidences): "delta_z" is a property of the **pair** of neighbouring
+    cells.
+    '''
+    delta_z = z - zn   # the difference in z for all pairs
+    f_pairs = pairwise_crowding_force(delta_z, a=a, s=s)  # the corresponding pairwise forces
+
+    # define an array as long as nucl_pos, where we calculate the force
+    force = np.zeros_like(nucl_pos)
+
+    '''
+    Calculate the total crowding force by looping over **cells**, instead of edges.
+    It may be more efficient, because the outer loop is over n_cells indices,
+    instead of ~n_cells^2 (number of pairs, twice), and the "np.where" should be much
+    faster than a simple elemeng-by-element search.
+    '''
+    for cell in np.unique(cell_ids):
+        neigh_cells = np.where(neig_ids == cell)[0] # check the ids of the neighbours of "cell"
+        force[cell] = np.sum(f_pairs[neigh_cells])  # sum the corresponding contributions
+
+    # '''
+    # Alternatively, loop over edges.
+    # The following loop looks like it's over cells, but it actually is over
+    # **pairs** of cells. This is because "cell_ids" is taken from "face_id_by_edge"
+    # as discussed above.
+    # '''
+    # for i, cell in enumerate(cell_ids):
+    #     '''
+    #     "i" is the index of the **pair** of cells
+    #     "cell" is the index of the cell of interest: it is used to
+    #         access the corresponding element of the "force" array.
+    #         The same index will appear as many times as its neighbours
+    #     '''
+    #     force[cell] += f_pairs[i]
+
+    return force
+
+
+
         
  # simulation with division and INM (no differentiation rate domain) # type 0 Rebeca model 1 -> type 4
 def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None, k=40, D=0.1): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
@@ -779,7 +862,7 @@ def run_simulation_INM(x, timend,rand, sim_type):
     cells.properties['parent_group'] = bin_by_xpos(cells,np.cumsum([0.475,0.5,0.475]))
 
     print("Start thermalization...")
-    history1 = run(simulation_with_division(cells,force,rand=rand1),2.0/dt,0.5/dt)
+    history1 = run(simulation_with_division(cells,force,rand=rand1),10.0/dt,0.5/dt)
     cells = history1[-1].copy() #last timestep in the 'thermalization' phase -> use this as the initial condition for the actual run below
     # sampleset = np.random.choice(cells.mesh.face_ids,20, replace=False) #take 7 different ramdon cells to follow clones
 
