@@ -73,7 +73,7 @@ def basic_simulation(cells,force,dt=dt,T1_eps=0.04): # a generator
         cells.mesh = cells.mesh.moved(dv).scaled(1.0+ expansion)
         yield cells # outputs the cells object but continues to run (unlike return)!
 
-# simulation with division and INM (no differentiation rate domain) # type 0
+# simulation with division and INM (no differentiation rate domain) # type 100
 def simulation_with_division(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
     properties = cells.properties
     properties['parent'] = cells.mesh.face_ids #save the ids to control division parents-daugthers 
@@ -88,6 +88,7 @@ def simulation_with_division(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand
         #cells id where is true the division conditions: living cells & area greater than 2 & age cell in mitosis 
         ready = np.where(~cells.empty() & (cells.mesh.area>=A_c) & (cells.properties['age']>=(t_G1+t_S+t_G2)))[0]  
         if len(ready): #these are the cells ready to undergo division at the current timestep
+            #print(ready)
             properties['ageingrate'] =np.append(properties['ageingrate'], np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready))))
             properties['age'] = np.append(properties['age'],np.zeros(2*len(ready)))
             properties['parent'] = np.append(properties['parent'],np.repeat(properties['parent'][ready],2))  # Daugthers and parent have the same ids
@@ -140,6 +141,7 @@ def simulation_with_division(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand
         yield cells 
 
 
+<<<<<<< HEAD
 
 def pairwise_crowding_force (delta_z, a=1.0, s=0.1):
     '''
@@ -175,31 +177,114 @@ def crowding_force (cells, a=1.0, s=0.1):
 
     # calculate the sum of the pairwise contributions for each cell of interest
     force = np.bincount(cell_ids, f_pairs, cells.mesh.n_face)
+=======
+# Crowding function faster
+
+def pairwise_crowding_force(delta_z, a=0.2, s=0.2):
+        return(a*np.exp((-(delta_z)**2)/(2*s**2))*delta_z/s) # np instead of math -> array
+
+def crowding_force(cells, a=0.2, s=0.2):
+    nucl_pos = cells.properties['nucl_pos']
+
+    cell_ids = cells.mesh.face_id_by_edge   # ids of faces/cells
+    neig_ids = cell_ids[cells.mesh.reverse] # ids of their neighbours
+
+    #print(np.where(~cells.empty())[0] == np.sort(np.unique(cell_ids)))
+
+    z  = np.take(nucl_pos, cell_ids) # cells of interest
+    zn = np.take(nucl_pos, neig_ids) # their neighbours
+
+    delta_z = z - zn   # the difference in z for all pairs
+    f_pairs = pairwise_crowding_force(delta_z, a=a, s=s)  # the corresponding pairwise forces
+
+    force = np.zeros_like(nucl_pos)
+
+    for cell in np.unique(cell_ids):
+        neigh_cells = np.where(neig_ids == cell)[0] # check the ids of the neighbours of "cell"
+        force[cell] = np.sum(f_pairs[neigh_cells])  # sum the corresponding contributions
+>>>>>>> crowding
 
     return force
 
 
+<<<<<<< HEAD
         
  # simulation with division and INM (no differentiation rate domain) # type 0 Rebeca model 1 -> type 4
 def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None, k=40, D=0.1): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
+=======
+
+"""
+# Defining crowding function
+def pairwise_crowding_force(delta_z, a=0.2, s=0.2):
+        return(a*np.exp((-(delta_z)**2)/(2*s**2))*delta_z/s) # np instead of math -> array
+
+def crowding_force(cells, a=0.2, s=0.2):
+    nucl_pos = cells.properties['nucl_pos'] # rename all to nucl_pos !!!!
+    force_z = np.zeros_like(nucl_pos)
+
+    for i, (edge_1, edge_2) in enumerate(zip(cells.mesh.edges.ids, cells.mesh.edges.reverse)):
+            
+            if edge_1 > edge_2: 
+                continue # so that the same pair of edges is not repeated twice
+                                           
+            cell_1 = cells.mesh.face_id_by_edge[edge_1] 
+            cell_2 = cells.mesh.face_id_by_edge[edge_2]   
+ 
+            delta_z = nucl_pos[cell_1] - nucl_pos[cell_2] 
+            
+            force_pairwise = pairwise_crowding_force(delta_z, a=a, s=s) # takes a and s from line 171. make changes inside sim
+            force_z[cell_1] += force_pairwise
+            force_z[cell_2] += -force_pairwise
+            
+        #properties['force_z'] = force_z
+
+    return force_z
+
+    # Then upd: properties['nucl_pos'] += crowding_force(cells, a, s)*dt + ...
+"""
+
+ # simulation with division and INM (no differentiation rate domain) # type 0 Rebeca model 1 -> type 4: delayed drift + noise
+def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None, D=0.15, k=100): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
+>>>>>>> crowding
     properties = cells.properties
     properties['parent'] = cells.mesh.face_ids #save the ids to control division parents-daugthers 
     properties['ageingrate'] = np.random.normal(1.0/lifespan,0.2/lifespan,len(cells)) #degradation rate per each cell
+    #dummy = np.random.normal(1.0/lifespan,0.2/lifespan,len(cells))
+    #properties['ageingrate'] = 1.0/lifespan*np.ones(len(cells)) #degradation rate per each cell
     properties['ids_division'] = [] #save ids of the cell os the division when it's ready per each time step
     properties['force_x'] = []
     properties['force_y'] = []
     properties['T1_angle_pD'] = []
     properties['Division_angle_pD'] = []
+<<<<<<< HEAD
     properties['nucl_pos'] = properties['zposn'].copy()
+=======
+
+    properties['nucl_pos'] = properties['zposn'].copy()
+
+>>>>>>> crowding
     expansion = np.array([0.0,0.0])
+
+    
     while True:
         #cells id where is true the division conditions: living cells & area greater than 2 & age cell in mitosis 
-        ready = np.where(~cells.empty() & (cells.mesh.area>=A_c) & (cells.properties['age']>=(t_G1+t_S+t_G2)))[0]  
+        ready = np.where(~cells.empty() & (cells.mesh.area>=A_c) & (cells.properties['age']>=(t_G1+t_S+t_G2)))[0]  # divides if nucleus pos > 0.75
+        properties['ageingrate'][ready] = 0
         if len(ready): #these are the cells ready to undergo division at the current timestep
+<<<<<<< HEAD
             properties['ageingrate'] = np.append(properties['ageingrate'], np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready))))
             properties['age'] = np.append(properties['age'],np.zeros(2*len(ready)))
             properties['parent'] = np.append(properties['parent'],np.repeat(properties['parent'][ready],2))  # Daugthers and parent have the same ids
             properties['nucl_pos'] = np.append(properties['nucl_pos'], np.ones(2*len(ready)))
+=======
+            properties['ageingrate'] =np.append(properties['ageingrate'], np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready))))
+            #dummy = np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready)))
+            #properties['ageingrate'] =np.append(properties['ageingrate'], 1.0/lifespan*np.ones(2*len(ready)))
+            properties['age'] = np.append(properties['age'],np.zeros(2*len(ready)))
+            properties['parent'] = np.append(properties['parent'],np.repeat(properties['parent'][ready],2))  # Daugthers and parent have the same ids
+            properties['nucl_pos'] = np.append(properties['nucl_pos'], np.ones(2*len(ready)))
+
+>>>>>>> crowding
             properties['ids_division'] = ready
             edge_pairs = [division_axis(cells.mesh,cell_id,rand) for cell_id in ready] #New edges after division 
             cells.mesh = cells.mesh.add_edges(edge_pairs) #Add new edges in the mesh
@@ -207,19 +292,32 @@ def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
                 commun_edges = np.intersect1d(cells.mesh.length[np.where(cells.mesh.face_id_by_edge==(cells.mesh.n_face-2*(i+1)))[0]],cells.mesh.length[np.where(cells.mesh.face_id_by_edge==(cells.mesh.n_face-1-2*i))[0]])
                 division_new_edge=np.where(cells.mesh.length==np.max(commun_edges))[0]
                 properties['Division_angle_pD']= np.append(properties['Division_angle_pD'],cells.mesh.edge_angle[division_new_edge][0])
-        properties['age'] = properties['age']+dt*properties['ageingrate'] #add time step depending of the degradation rate 
+        #properties['age'] = properties['age']+dt*properties['ageingrate'] #add time step depending of the degradation rate 
         
+
+        # IMPORTANT: add age ingrate only for alive cells
+        #alivecells = np.where(~cells.empty())[0]
+        properties['age'] += dt*properties['ageingrate'] #add time step depending of the degradation rate 
+        
+
         #Calculate z nuclei position (Apical-Basal movement), depending of the cell cycle phase time and age of the cell
-        N_G1=1-1.0/t_G1*properties['age'] 
+        N_G1=1-1.0/t_G1*properties['age']
         N_S=0 
         N_G2=1.0/(t_G2)*(properties['age']-(t_G1+t_S))
         properties['zposn'] = np.minimum(1.0,np.maximum(N_G1,np.maximum(N_S,N_G2)))
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> crowding
         properties['nucl_pos'] += k*(properties['zposn'] - properties['nucl_pos'])*dt + np.sqrt(2*D*dt)*np.random.randn(len(properties['zposn']))
         
         
         """Target area function depending age and z nuclei position"""
-        properties['A0'] = (properties['age']+1.0)*0.5*(1.0+properties['nucl_pos']**2)
+        properties['A0'] = (properties['age']+1.0)*0.5*(1.0+(properties['nucl_pos'])**2) # target area now depends on nucl_pos
+        
+        properties['A0_initial'] = (properties['age']+1.0)*0.5*(1.0+(properties['zposn'])**2) # initial
+        
         
         #############BAETTI VID
         
@@ -251,8 +349,307 @@ def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         yield cells 
        
         
+# simulation with division and INM (no differentiation rate domain) # type 0 Rebeca model 1 -> type 5: drift = v0 & noise
+def simulation_with_division_model_2(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None, D=0.15, k=100): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
+    properties = cells.properties
+    properties['parent'] = cells.mesh.face_ids #save the ids to control division parents-daugthers 
+    properties['ageingrate'] = np.random.normal(1.0/lifespan,0.2/lifespan,len(cells)) #degradation rate per each cell
+    properties['ids_division'] = [] #save ids of the cell os the division when it's ready per each time step
+    properties['force_x'] = []
+    properties['force_y'] = []
+    properties['T1_angle_pD'] = []
+    properties['Division_angle_pD'] = []
+
+    properties['nucl_pos'] = properties['zposn'].copy() # nucleus pos with drift = v0 and noise
+    
+    expansion = np.array([0.0,0.0])
+
+    
+    while True:
+        #cells id where is true the division conditions: living cells & area greater than 2 & age cell in mitosis 
+        ready = np.where(~cells.empty() & (cells.mesh.area>=A_c) & (cells.properties['age']>=(t_G1+t_S+t_G2)))[0]  # divides if nucleus pos > 0.75
+        properties['ageingrate'][ready] = 0
+        if len(ready): #these are the cells ready to undergo division at the current timestep
+            properties['ageingrate'] =np.append(properties['ageingrate'], np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready))))
+            properties['age'] = np.append(properties['age'],np.zeros(2*len(ready)))
+            properties['parent'] = np.append(properties['parent'],np.repeat(properties['parent'][ready],2))  # Daugthers and parent have the same ids
+            
+            properties['nucl_pos'] = np.append(properties['nucl_pos'], np.ones(2*len(ready)))
+
+            properties['ids_division'] = ready
+            edge_pairs = [division_axis(cells.mesh,cell_id,rand) for cell_id in ready] #New edges after division 
+            cells.mesh = cells.mesh.add_edges(edge_pairs) #Add new edges in the mesh
+            for i in range(len(ready)):
+                commun_edges = np.intersect1d(cells.mesh.length[np.where(cells.mesh.face_id_by_edge==(cells.mesh.n_face-2*(i+1)))[0]],cells.mesh.length[np.where(cells.mesh.face_id_by_edge==(cells.mesh.n_face-1-2*i))[0]])
+                division_new_edge=np.where(cells.mesh.length==np.max(commun_edges))[0]
+                properties['Division_angle_pD']= np.append(properties['Division_angle_pD'],cells.mesh.edge_angle[division_new_edge][0])
+        #properties['age'] = properties['age']+dt*properties['ageingrate'] #add time step depending of the degradation rate 
+
+        # IMPORTANT: add age ingrate only for alive cells
+        #alivecells = np.where(~cells.empty())[0]
+        properties['age'] += dt*properties['ageingrate'] #add time step depending of the degradation rate 
+
+
+        #Calculate z nuclei position (Apical-Basal movement), depending of the cell cycle phase time and age of the cell
+        N_G1=1-1.0/t_G1*properties['age']
+        N_S=0 
+        N_G2=1.0/(t_G2)*(properties['age']-(t_G1+t_S))
+        properties['zposn'] = np.minimum(1.0,np.maximum(N_G1,np.maximum(N_S,N_G2)))
+ """
+        v0 = np.zeros_like(properties['age']) # array for velocities
+        G1_cells = np.where((0<=properties['age']) & (properties['age']<=t_G1))[0]
+        v0[G1_cells] = -1.0/t_G1
+        #S_cells = np.where(t_G1 < properties['age'] <= t_G1 + t_S)[0]
+        #v0[S_cells] = 0
+        G2_cells = np.where((t_G1+t_S<properties['age']) & (properties['age']<=t_G1+t_S+t_G2))[0]
+        v0[G2_cells] = 1.0/t_G2
+        #M_cells = np.where(t_G1+t_S+t_G2 < properties['age'])
+        #v0[M_cells] = 0
+
+        properties['nucl_pos'] += v0*dt + np.sqrt(2*D*dt)*np.random.randn(len(properties['zposn']))
+""" 
+        properties['nucl_pos'] += k*(properties['zposn'] - properties['nucl_pos'])*dt + np.sqrt(2*D*dt)*np.random.randn(len(properties['zposn']))
+
+        """Target area function depending age and z nuclei position"""
+        properties['A0'] = (properties['age']+1.0)*0.5*(1.0+(properties['nucl_pos'])**2) # target area now depends on nucl_pos_2
+        properties['A0_initial'] = (properties['age']+1.0)*0.5*(1.0+(properties['zposn'])**2) # rerun simul with this
+        
+    
+        #############BAETTI VID
+        
+        #ath BAETTI D VID
+        cells.mesh , number_T1, d = cells.mesh.transition(T1_eps)   #  #check edges verifing T1 transition
+        if len(number_T1)>0:
+            for ii in number_T1: #
+                index = cells.mesh.face_id_by_edge[ii]
+                properties['T1_angle_pD'] =np.append(properties['T1_angle_pD'],cells.mesh.edge_angle[ii])
+        F = force(cells)/viscosity  #force per each cell force= targetarea+Tension+perimeter+pressure_boundary 
+
+        #EG BAETTI VID
+        len_modified=np.matrix.copy(cells.mesh.length)
+        #len_modified[np.where((properties['parent_group'][cells.mesh.face_id_by_edge]==1) & np.logical_not(properties['parent_group'][cells.mesh.face_id_by_edge[cells.mesh.edges.reverse]]==0))]*=0.12
+        
+        tens = (0.5*cells.by_edge('Lambda', 'Lambda_boundary')/len_modified)*cells.mesh.edge_vect
+        tens= tens - tens.take(cells.mesh.edges.prev, 1)
+        F+=tens
+
+        dv = dt*model.sum_vertices(cells.mesh.edges,F) #movement of the vertices using eq: viscosity*dv/dt = F
+        properties['force_x'] = F[0]*viscosity
+        properties['force_y'] = F[1]*viscosity   
+        
+        if hasattr(cells.mesh.geometry,'width'):
+            expansion[0] = expansion_constant*np.average(F[0]*cells.mesh.vertices[0])*dt/(cells.mesh.geometry.width**2)
+        if hasattr(cells.mesh.geometry,'height'): #Cylinder mesh doesn't have 'height' argument
+            expansion[1] = np.average(F[1]*cells.mesh.vertices[1])*dt/(cells.mesh.geometry.height**2)
+        cells.mesh = cells.mesh.moved(dv).scaled(1.0+expansion)
+        yield cells 
+               
+# simulation with division and INM (no differentiation rate domain) # type 0 Rebeca model 3 -> type 6: delayed drift + noise + force
+def simulation_with_division_model_3(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None, D=0.15, k=100): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
+    properties = cells.properties
+    properties['parent'] = cells.mesh.face_ids #save the ids to control division parents-daugthers 
+    properties['ageingrate'] = np.random.normal(1.0/lifespan,0.2/lifespan,len(cells)) #degradation rate per each cell
+    properties['ids_division'] = [] #save ids of the cell os the division when it's ready per each time step
+    properties['force_x'] = []
+    properties['force_y'] = []
+    properties['T1_angle_pD'] = []
+    properties['Division_angle_pD'] = []
+
+    properties['nucl_pos'] = properties['zposn'].copy()
+    
+    properties['force_z'] = []
+    
+    expansion = np.array([0.0,0.0])
+    
+    # crowding function parameters -> change them here
+    s = 0.2
+    a = 0.2
+    
+    while True:
+        #cells id where is true the division conditions: living cells & area greater than 2 & age cell in mitosis 
+        ready = np.where(~cells.empty() & (cells.mesh.area>=A_c) & (cells.properties['age']>=(t_G1+t_S+t_G2)))[0]  # divides if nucleus pos > 0.75
+        if len(ready): #these are the cells ready to undergo division at the current timestep
+            properties['ageingrate'] =np.append(properties['ageingrate'], np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready))))
+            properties['age'] = np.append(properties['age'],np.zeros(2*len(ready)))
+            properties['parent'] = np.append(properties['parent'],np.repeat(properties['parent'][ready],2))  # Daugthers and parent have the same ids
+            # daughter cells = same positions as parents - do this NEXT
+            properties['nucl_pos'] = np.append(properties['nucl_pos'], np.ones(2*len(ready)))
+
+            properties['ids_division'] = ready
+            edge_pairs = [division_axis(cells.mesh,cell_id,rand) for cell_id in ready] #New edges after division 
+            cells.mesh = cells.mesh.add_edges(edge_pairs) #Add new edges in the mesh
+            for i in range(len(ready)):
+                commun_edges = np.intersect1d(cells.mesh.length[np.where(cells.mesh.face_id_by_edge==(cells.mesh.n_face-2*(i+1)))[0]],cells.mesh.length[np.where(cells.mesh.face_id_by_edge==(cells.mesh.n_face-1-2*i))[0]])
+                division_new_edge=np.where(cells.mesh.length==np.max(commun_edges))[0]
+                properties['Division_angle_pD']= np.append(properties['Division_angle_pD'],cells.mesh.edge_angle[division_new_edge][0])
+        #properties['age'] = properties['age']+dt*properties['ageingrate'] #add time step depending of the degradation rate 
+
+        # IMPORTANT: add age ingrate only for alive cells
+        alivecells = np.where(~cells.empty())[0]
+        properties['age'][alivecells] += dt*properties['ageingrate'][alivecells] #add time step depending of the degradation rate 
+
+        #Calculate z nuclei position (Apical-Basal movement), depending of the cell cycle phase time and age of the cell
+        N_G1=1-1.0/t_G1*properties['age']
+        N_S=0 
+        N_G2=1.0/(t_G2)*(properties['age']-(t_G1+t_S))
+        properties['zposn'] = np.minimum(1.0,np.maximum(N_G1,np.maximum(N_S,N_G2)))
+
+
+        """
+        force_z = np.zeros_like(properties['zposn'])
+        
+        for i, (edge_1, edge_2) in enumerate(zip(cells.mesh.edges.ids, cells.mesh.edges.reverse)):
+            
+            if edge_1 > edge_2: 
+                continue # so that the same pair of edges is not repeated twice
+                                           
+            cell_1 = cells.mesh.face_id_by_edge[edge_1] 
+            cell_2 = cells.mesh.face_id_by_edge[edge_2]   
+ 
+            delta_z = properties['nucl_pos'][cell_1] - properties['nucl_pos'][cell_2] 
+            
+            force_pairwise = crowding_force(delta_z)
+            force_z[cell_1] += force_pairwise
+            force_z[cell_2] += -force_pairwise
+            
+        properties['force_z'] = force_z
+        """
+        
+        properties['nucl_pos'] += k*(properties['zposn'] - properties['nucl_pos'])*dt + np.sqrt(2*D*dt)*np.random.randn(len(properties['zposn'])) + crowding_force(cells, a=a, s=s)
+
         
         
+        """Target area function depending age and z nuclei position"""
+        properties['A0'] = (properties['age']+1.0)*0.5*(1.0+(properties['nucl_pos'])**2) # target area now depends on nucl_pos
+        properties['A0_initial'] = (properties['age']+1.0)*0.5*(1.0+(properties['zposn'])**2) # initial
+        
+    
+        #############BAETTI VID
+        
+        #ath BAETTI D VID
+        cells.mesh , number_T1, d= cells.mesh.transition(T1_eps)  #check edges verifing T1 transition
+        if len(number_T1)>0:
+            for ii in number_T1:
+                index = cells.mesh.face_id_by_edge[ii]
+                properties['T1_angle_pD'] =np.append(properties['T1_angle_pD'],cells.mesh.edge_angle[ii])
+        F = force(cells)/viscosity  #force per each cell force= targetarea+Tension+perimeter+pressure_boundary 
+
+        #EG BAETTI VID
+        len_modified=np.matrix.copy(cells.mesh.length)
+        #len_modified[np.where((properties['parent_group'][cells.mesh.face_id_by_edge]==1) & np.logical_not(properties['parent_group'][cells.mesh.face_id_by_edge[cells.mesh.edges.reverse]]==0))]*=0.12
+        
+        tens = (0.5*cells.by_edge('Lambda', 'Lambda_boundary')/len_modified)*cells.mesh.edge_vect
+        tens= tens - tens.take(cells.mesh.edges.prev, 1)
+        F+=tens
+
+        dv = dt*model.sum_vertices(cells.mesh.edges,F) #movement of the vertices using eq: viscosity*dv/dt = F
+        properties['force_x'] = F[0]*viscosity
+        properties['force_y'] = F[1]*viscosity   
+        
+        if hasattr(cells.mesh.geometry,'width'):
+            expansion[0] = expansion_constant*np.average(F[0]*cells.mesh.vertices[0])*dt/(cells.mesh.geometry.width**2)
+        if hasattr(cells.mesh.geometry,'height'): #Cylinder mesh doesn't have 'height' argument
+            expansion[1] = np.average(F[1]*cells.mesh.vertices[1])*dt/(cells.mesh.geometry.height**2)
+        cells.mesh = cells.mesh.moved(dv).scaled(1.0+expansion)
+        yield cells       
+
+# simulation with division and INM (no differentiation rate domain) # type 0 Rebeca model 4 -> type 7: drift = v0 & noise & force
+def simulation_with_division_model_4(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None, D=0.15, k=100): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
+    properties = cells.properties
+    properties['parent'] = cells.mesh.face_ids #save the ids to control division parents-daugthers 
+    properties['ageingrate'] = np.random.normal(1.0/lifespan,0.2/lifespan,len(cells)) #degradation rate per each cell
+    properties['ids_division'] = [] #save ids of the cell os the division when it's ready per each time step
+    properties['force_x'] = []
+    properties['force_y'] = []
+    properties['T1_angle_pD'] = []
+    properties['Division_angle_pD'] = []
+
+
+    properties['nucl_pos'] = properties['zposn'].copy()
+    
+    properties['force_z'] = []
+    
+    expansion = np.array([0.0,0.0])
+    
+    # crowding force function parameters -> change parameters here
+    s = 0.2
+    a = 0.2
+   
+    while True:
+        #cells id where is true the division conditions: living cells & area greater than 2 & age cell in mitosis 
+        ready = np.where(~cells.empty() & (cells.mesh.area>=A_c) & (cells.properties['age']>=(t_G1+t_S+t_G2)) & (cells.properties['nucl_pos']>=0.75))[0]  # divides if nucleus pos > 0.75
+        if len(ready): #these are the cells ready to undergo division at the current timestep
+            properties['ageingrate'] =np.append(properties['ageingrate'], np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready))))
+            properties['age'] = np.append(properties['age'],np.zeros(2*len(ready)))
+            properties['parent'] = np.append(properties['parent'],np.repeat(properties['parent'][ready],2))  # Daugthers and parent have the same ids
+            
+            # daughter cells = same positions as parents - do this NEXT
+            properties['nucl_pos'] = np.append(properties['nucl_pos'], np.ones(2*len(ready)))
+
+            properties['ids_division'] = ready
+            edge_pairs = [division_axis(cells.mesh,cell_id,rand) for cell_id in ready] #New edges after division 
+            cells.mesh = cells.mesh.add_edges(edge_pairs) #Add new edges in the mesh
+            for i in range(len(ready)):
+                commun_edges = np.intersect1d(cells.mesh.length[np.where(cells.mesh.face_id_by_edge==(cells.mesh.n_face-2*(i+1)))[0]],cells.mesh.length[np.where(cells.mesh.face_id_by_edge==(cells.mesh.n_face-1-2*i))[0]])
+                division_new_edge=np.where(cells.mesh.length==np.max(commun_edges))[0]
+                properties['Division_angle_pD']= np.append(properties['Division_angle_pD'],cells.mesh.edge_angle[division_new_edge][0])
+        #properties['age'] = properties['age']+dt*properties['ageingrate'] #add time step depending of the#properties['age_ready'] = properties['age'][ready] # get age of cells which are READY to divide
+
+        # IMPORTANT: add age ingrate only for alive cells
+        alivecells = np.where(~cells.empty())[0]
+        properties['age'][alivecells] += dt*properties['ageingrate'][alivecells] #add time step depending of the degradation rate 
+        
+        #Calculate z nuclei position (Apical-Basal movement), depending of the cell cycle phase time and age of the cell
+        N_G1=1-1.0/t_G1*properties['age']
+        N_S=0 
+        N_G2=1.0/(t_G2)*(properties['age']-(t_G1+t_S))
+        properties['zposn'] = np.minimum(1.0,np.maximum(N_G1,np.maximum(N_S,N_G2)))
+
+        v0 = np.zeros_like(properties['age']) # array for velocities
+        G1_cells = np.where(0 <= properties['age'] <= t_G1)[0]
+        v0[G1_cells] = -1.0/t_G1
+        #S_cells = np.where(t_G1 < properties['age'] <= t_G1 + t_S)[0]
+        #v0[S_cells] = 0
+        G2_cells = np.where(t_G1+t_S < properties['age'] <= t_G1+t_S+t_G2)[0]
+        v0[G2_cells] = 1.0/t_G2
+        #M_cells = np.where(t_G1+t_S+t_G2 < properties['age'])
+        #v0[M_cells] = 0
+
+        properties['nucl_pos'] += v0*dt + np.sqrt(2*D*dt)*np.random.randn(len(properties['zposn'])) + crowding_force(cells, a=a, s=s)*dt
+        
+        
+        """Target area function depending age and z nuclei position"""
+        properties['A0'] = (properties['age']+1.0)*0.5*(1.0+(properties['nucl_pos'])**2) # target area now depends on nucl_pos
+        properties['A0_initial'] = (properties['age']+1.0)*0.5*(1.0+(properties['zposn'])**2) # initial
+        
+        #############BAETTI VID
+        
+        #ath BAETTI D VID
+        cells.mesh , number_T1, d= cells.mesh.transition(T1_eps)  #check edges verifing T1 transition
+        if len(number_T1)>0:
+            for ii in number_T1:
+                index = cells.mesh.face_id_by_edge[ii]
+                properties['T1_angle_pD'] =np.append(properties['T1_angle_pD'],cells.mesh.edge_angle[ii])
+        F = force(cells)/viscosity  #force per each cell force= targetarea+Tension+perimeter+pressure_boundary 
+
+        #EG BAETTI VID
+        len_modified=np.matrix.copy(cells.mesh.length)
+        #len_modified[np.where((properties['parent_group'][cells.mesh.face_id_by_edge]==1) & np.logical_not(properties['parent_group'][cells.mesh.face_id_by_edge[cells.mesh.edges.reverse]]==0))]*=0.12
+        
+        tens = (0.5*cells.by_edge('Lambda', 'Lambda_boundary')/len_modified)*cells.mesh.edge_vect
+        tens= tens - tens.take(cells.mesh.edges.prev, 1)
+        F+=tens
+
+        dv = dt*model.sum_vertices(cells.mesh.edges,F) #movement of the vertices using eq: viscosity*dv/dt = F
+        properties['force_x'] = F[0]*viscosity
+        properties['force_y'] = F[1]*viscosity   
+        
+        if hasattr(cells.mesh.geometry,'width'):
+            expansion[0] = expansion_constant*np.average(F[0]*cells.mesh.vertices[0])*dt/(cells.mesh.geometry.width**2)
+        if hasattr(cells.mesh.geometry,'height'): #Cylinder mesh doesn't have 'height' argument
+            expansion[1] = np.average(F[1]*cells.mesh.vertices[1])*dt/(cells.mesh.geometry.height**2)
+        cells.mesh = cells.mesh.moved(dv).scaled(1.0+expansion)
+        yield cells       
 
 # simulation with division, INM and no differentiation rate - type 0 with both pD and pMN
 def simulation_with_division_clone(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
@@ -457,28 +854,14 @@ def simulation_with_division_clone_differenciation_3stripes(cells,force,dt=dt,T1
         alivecells = np.where(~cells.empty())[0]
         properties['age'][alivecells] += dt*properties['ageingrate'][alivecells] #add time step depending of the degradation rate 
         
-        # define arrays for each phase:
-        N_G1_new = np.ones_like(properties['age']) # vector with ones for as many cells (ages) as they are at the current timestep
-        N_S_new = np.zeros_like(properties['age'])
-        N_G2_new = np.zeros_like(properties['age'])
-        N_M_new = np.ones_like(properties['age'])
         
         N_G1=1-1.0/t_G1*properties['age'] #nuclei position in G1 phase
-        N_G1_new = N_G1_new + k*(N_G1 - N_G1_new)*dt + np.sqrt(2*D*dt)*np.random.randn(len(properties['age'])) #nuclei position in G1 phase
         N_S=0
-        N_S_new = N_S_new + k*(N_S - N_S_new)*dt + np.sqrt(2*D*dt)*np.random.randn(len(properties['age']))
-        
         N_G2=1.0/(t_G2)*(properties['age']-(t_G1+t_S))  #nuclei position in G2 and S phase
-        N_G2_new = N_G2_new + k*(N_G2 - N_G2_new)*dt + np.sqrt(2*D*dt)*np.random.randn(len(properties['age']))
-        
-        N_M = 1
-        N_M_new = N_M_new + k*(N_M - N_M_new)*dt + np.sqrt(2*D*dt)*np.random.randn(len(properties['age']))
         
         properties['zposn'] = np.minimum(1.0,np.maximum(N_G1,np.maximum(N_S,N_G2)))
-        properties['nucl_pos'] = np.minimum(1.0,np.maximum(N_G1_new,np.maximum(N_S_new,N_G2_new))) # new position
+       
         
-        
-          
         properties['zposn'][np.where(properties['parent_group']==3)]=0
        
 
@@ -609,7 +992,7 @@ def simulation_with_division_clone_whole_tissue_differenciation(cells,force,dt=d
         yield cells 
         
     
-# simulation with division with INM and 2 diferent populations (with and without differentiation rate) - type 4 (type 2 modified by Rebeca)
+# simulation with division with INM and 2 diferent populations (with and without differentiation rate) - type 4 PREVIOUS (type 2 modified by Rebeca)
 def simulation_with_division_clone_differenciation_3stripes_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
 
     
@@ -818,8 +1201,14 @@ def run_simulation_INM(x, timend,rand, sim_type):
     cells.properties['parent_group'] = np.zeros(len(cells),dtype=int) #use to draw clone
     cells.properties['parent_group'] = bin_by_xpos(cells,np.cumsum([0.475,0.5,0.475]))
 
+<<<<<<< HEAD
     print("Start thermalization...")
     history1 = run(simulation_with_division(cells,force,rand=rand1),10.0/dt,0.5/dt)
+=======
+ 
+    #history1 = run(simulation_with_division(cells,force,rand=rand1),2./dt,0.5/dt) # for checks
+    history1 = run(simulation_with_division(cells,force,rand=rand1),200/dt,50.0/dt)
+>>>>>>> crowding
     cells = history1[-1].copy() #last timestep in the 'thermalization' phase -> use this as the initial condition for the actual run below
     # sampleset = np.random.choice(cells.mesh.face_ids,20, replace=False) #take 7 different ramdon cells to follow clones
 
@@ -830,6 +1219,8 @@ def run_simulation_INM(x, timend,rand, sim_type):
 
     print(f"Start simulation of type {sim_type}...")
     # sampleset = np.random.choice(cells.mesh.face_ids[cells.properties['parent_group']==1],10, replace=False) #take 10 different ramdon cells to follow clones
+    if sim_type == 100:
+        history = run(simulation_with_division(cells,force,rand=rand),(timend)/dt,1.0/dt)
     if sim_type == 0:
         history = run(simulation_with_division_clone(cells,force,rand=rand),(timend)/dt,1.0/dt)
         history[-1].properties['parent_group'] = np.zeros(len(history[-1].properties['parent_group']),dtype=int)
@@ -843,8 +1234,15 @@ def run_simulation_INM(x, timend,rand, sim_type):
     if sim_type == 3:
         history = run(simulation_with_division_clone_whole_tissue_differenciation(cells,force,rand=rand),(timend)/dt,1.0/dt)
         history[-1].properties['parent_group'] = np.zeros(len(history[-1].properties['parent_group']),dtype=int)
+    # added by Rebeca:
     if sim_type == 4:
         history = run(simulation_with_division_model_1(cells,force,rand=rand),(timend)/dt,1.0/dt)
+    if sim_type == 5:
+        history = run(simulation_with_division_model_2(cells,force,rand=rand),(timend)/dt,1.0/dt)
+    if sim_type == 6:
+        history = run(simulation_with_division_model_3(cells,force,rand=rand),(timend)/dt,1.0/dt)
+    if sim_type == 7:
+        history = run(simulation_with_division_model_4(cells,force,rand=rand),(timend)/dt,1.0/dt)
    
  
         
@@ -864,8 +1262,13 @@ def save_data(I,history,outputdir):
     force = TargetArea()  + Perimeter() + Pressure()
     generation_a=[cells.mesh.area for cells in history] # collects a list of arrays each of which contains area of each cell at any given time 
     generation_p=[cells.mesh.perimeter for cells in history]
-    generation_n=[np.bincount(cells.mesh.face_id_by_edge) for cells in history]
+    generation_n=[np.bincount(cells.mesh.face_id_by_edge) for cells in history] # takes a vector of faces ids -> how many edges of a particular id are = count the neighbors
     generation_f=[force(cells) for cells in history] 
+    # added by Rebeca:
+    generation_nucl_pos = [cells.properties['nucl_pos'] for cells in history]
+    generation_nucl_pos_2 = [cells.properties['nucl_pos_2'] for cells in history]
+    generation_final_nucl_pos = [cells.properties['final_nucl_pos'] for cells in history]
+    generation_final_nucl_pos_2 = [cells.properties['final_nucl_pos_2'] for cells in history]
     death=[cells.empty() for cells in history]
     #mean variables in time
     area_mean=[]
@@ -890,7 +1293,7 @@ def save_data(I,history,outputdir):
     #end value of Area, Perimeter and Neighbour of the tissue
     """Define files per different values of area division condition"""
     outputdirname=outputdir+'/'
-    outfile_a=outputdirname+"area_mean_%0.3f"%I
+    outfile_a=outputdirname+"area_mean_%0.3f"%I # Is I meant to be area_mean[i] ???
     outfile_a_total=outputdirname+"area_total_%0.3f"%I
     outfile_p=outputdirname+"perimeter_mean_%0.3f"%I
     outfile_n=outputdirname+"neigh_mean_%0.3f"%I
