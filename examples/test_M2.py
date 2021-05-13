@@ -9,20 +9,35 @@ from matplotlib import animation, rc
 import vertex_model as model
 from vertex_model.run_select import run_simulation_INM, definecolors
 import vertex_model.initialisation as init
+import sys
 
 import time
 timestart = time.time()
 
 type_=5
-# L_point = [-.4, -0.2,-0.3, -0.05, 0.075, 0.15]
-# G_point = [0.14, 0.12, 0.1, 0.065, 0.04, 0.02]
-# i=4
-G=0.075 # G_point[i]
-L=0.04 # L_point[i]
+
+# parameters of the vertex model
+G=0.075
+L=0.04
 K=1.0
 
+# parameters of the nucleus A-B stochastic dynamics
+# sys.argv to pass from command line
+# call as, e.g.: python test_M1.py 100 0.15
+k=sys.argv[1] # 100
+D=sys.argv[2] # 0.15
+
+print(k, D)
+
+# parameters of the crowding force
+s=0.2
+a=1.
+
+# adding the nuclear movement parameters to 'params'
+params = [K,G,L,k,D,s,a]  # K=x[0],G=x[1],L=x[2]
+
+np.random.seed(1999)
 rand = np.random.RandomState(1999) #random number to choose Lambda
-params = [K,G,L]  # K=x[0],G=x[1],L=x[2]
 
 no_simulations = 1
 #Cell_cycle_lengths_progenitors = []
