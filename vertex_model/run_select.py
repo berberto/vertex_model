@@ -88,7 +88,7 @@ def simulation_with_division(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand
         #cells id where is true the division conditions: living cells & area greater than 2 & age cell in mitosis 
         ready = np.where(~cells.empty() & (cells.mesh.area>=A_c) & (cells.properties['age']>=(t_G1+t_S+t_G2)))[0]  
         if len(ready): #these are the cells ready to undergo division at the current timestep
-            #print(ready)
+            print(ready)
             properties['ageingrate'] =np.append(properties['ageingrate'], np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready))))
             properties['age'] = np.append(properties['age'],np.zeros(2*len(ready)))
             properties['parent'] = np.append(properties['parent'],np.repeat(properties['parent'][ready],2))  # Daugthers and parent have the same ids
@@ -201,6 +201,7 @@ def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         ready = np.where(~cells.empty() & (cells.mesh.area>=A_c) & (cells.properties['age']>=(t_G1+t_S+t_G2)))[0]  # divides if nucleus pos > 0.75
         properties['ageingrate'][ready] = 0
         if len(ready): #these are the cells ready to undergo division at the current timestep
+            print("cells dividing --> ", ready)
             properties['ageingrate'] = np.append(properties['ageingrate'], np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready))))
             #dummy = np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready)))
             #properties['ageingrate'] =np.append(properties['ageingrate'], 1.0/lifespan*np.ones(2*len(ready)))
@@ -235,8 +236,8 @@ def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
                                   + np.sqrt(2*D*dt)*np.random.randn(len(properties['nucl_pos']))
         
         """Target area function depending age and z nuclei position"""
-        properties['A0'] = (properties['age']+1.0)*0.5*(1.0+(properties['nucl_pos'])**2) # target area now depends on nucl_pos
-        properties['A0_initial'] = (properties['age']+1.0)*0.5*(1.0+(properties['zposn'])**2) # initial
+        properties['A0'] = (properties['age']+1.0)*0.5*(1.0+properties['nucl_pos']**2) # target area now depends on nucl_pos
+        properties['A0_initial'] = (properties['age']+1.0)*0.5*(1.0+properties['zposn']**2) # initial
         
         
         #############BAETTI VID
@@ -290,6 +291,7 @@ def simulation_with_division_model_2(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         ready = np.where(~cells.empty() & (cells.mesh.area>=A_c) & (cells.properties['age']>=(t_G1+t_S+t_G2)))[0]  # divides if nucleus pos > 0.75
         properties['ageingrate'][ready] = 0
         if len(ready): #these are the cells ready to undergo division at the current timestep
+            print("cells dividing --> ", ready)
             properties['ageingrate'] =np.append(properties['ageingrate'], np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready))))
             properties['age'] = np.append(properties['age'],np.zeros(2*len(ready)))
             properties['parent'] = np.append(properties['parent'],np.repeat(properties['parent'][ready],2))  # Daugthers and parent have the same ids
@@ -317,21 +319,24 @@ def simulation_with_division_model_2(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         N_G2=1.0/(t_G2)*(properties['age']-(t_G1+t_S))
         properties['zposn'] = np.minimum(1.0,np.maximum(N_G1,np.maximum(N_S,N_G2)))
 
-        v0 = np.zeros_like(properties['age']) # array for velocities
-        G1_cells = np.where((0<=properties['age']) & (properties['age']<=t_G1))[0]
-        v0[G1_cells] = -1.0/t_G1
-        #S_cells = np.where(t_G1 < properties['age'] <= t_G1 + t_S)[0]
-        #v0[S_cells] = 0
-        G2_cells = np.where((t_G1+t_S<properties['age']) & (properties['age']<=t_G1+t_S+t_G2))[0]
-        v0[G2_cells] = 1.0/t_G2
-        #M_cells = np.where(t_G1+t_S+t_G2 < properties['age'])
-        #v0[M_cells] = 0
+        # v0 = np.zeros_like(properties['age']) # array for velocities
+        # G1_cells = np.where((0<=properties['age']) & (properties['age']<=t_G1))[0]
+        # v0[G1_cells] = -1.0/t_G1
+        # #S_cells = np.where(t_G1 < properties['age'] <= t_G1 + t_S)[0]
+        # #v0[S_cells] = 0
+        # G2_cells = np.where((t_G1+t_S<properties['age']) & (properties['age']<=t_G1+t_S+t_G2))[0]
+        # v0[G2_cells] = 1.0/t_G2
+        # #M_cells = np.where(t_G1+t_S+t_G2 < properties['age'])
+        # #v0[M_cells] = 0
 
-        properties['nucl_pos'] += v0*dt + np.sqrt(2*D*dt)*np.random.randn(len(properties['zposn']))
+        # properties['nucl_pos'] += v0*dt + np.sqrt(2*D*dt)*np.random.randn(len(properties['zposn']))
+
+        properties['nucl_pos'] += k*(properties['zposn'] - properties['nucl_pos'])*dt \
+                                  + np.sqrt(2*D*dt)*np.random.randn(len(properties['nucl_pos']))
 
         """Target area function depending age and z nuclei position"""
-        properties['A0'] = (properties['age']+1.0)*0.5*(1.0+(properties['nucl_pos'])**2) # target area now depends on nucl_pos_2
-        properties['A0_initial'] = (properties['age']+1.0)*0.5*(1.0+(properties['zposn'])**2) # rerun simul with this
+        properties['A0'] = (properties['age']+1.0)*0.5*(1.0+properties['nucl_pos']**2) # target area now depends on nucl_pos_2
+        properties['A0_initial'] = (properties['age']+1.0)*0.5*(1.0+properties['zposn']**2) # rerun simul with this
         
     
         #############BAETTI VID
@@ -416,8 +421,8 @@ def simulation_with_division_model_3(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         
         
         """Target area function depending age and z nuclei position"""
-        properties['A0'] = (properties['age']+1.0)*0.5*(1.0+(properties['nucl_pos'])**2) # target area now depends on nucl_pos
-        properties['A0_initial'] = (properties['age']+1.0)*0.5*(1.0+(properties['zposn'])**2) # initial
+        properties['A0'] = (properties['age']+1.0)*0.5*(1.0+properties['nucl_pos']**2) # target area now depends on nucl_pos
+        properties['A0_initial'] = (properties['age']+1.0)*0.5*(1.0+properties['zposn']**2) # initial
         
     
         #############BAETTI VID
@@ -511,8 +516,8 @@ def simulation_with_division_model_4(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
 
         
         """Target area function depending age and z nuclei position"""
-        properties['A0'] = (properties['age']+1.0)*0.5*(1.0+(properties['nucl_pos'])**2) # target area now depends on nucl_pos
-        properties['A0_initial'] = (properties['age']+1.0)*0.5*(1.0+(properties['zposn'])**2) # initial
+        properties['A0'] = (properties['age']+1.0)*0.5*(1.0+properties['nucl_pos']**2) # target area now depends on nucl_pos
+        properties['A0_initial'] = (properties['age']+1.0)*0.5*(1.0+properties['zposn']**2) # initial
         
         #############BAETTI VID
         

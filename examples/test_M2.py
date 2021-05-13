@@ -13,8 +13,6 @@ import vertex_model.initialisation as init
 import time
 timestart = time.time()
 
-np.random.seed(1999)
-
 type_=5
 # L_point = [-.4, -0.2,-0.3, -0.05, 0.075, 0.15]
 # G_point = [0.14, 0.12, 0.1, 0.065, 0.04, 0.02]
@@ -23,7 +21,7 @@ G=0.075 # G_point[i]
 L=0.04 # L_point[i]
 K=1.0
 
-rand = np.random.RandomState() #random number to choose Lambda
+rand = np.random.RandomState(1999) #random number to choose Lambda
 params = [K,G,L]  # K=x[0],G=x[1],L=x[2]
 
 no_simulations = 1
