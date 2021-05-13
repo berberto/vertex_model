@@ -180,7 +180,7 @@ def crowding_force (cells, a=1.0, s=0.1):
 
 
 # simulation with division and INM (no differentiation rate domain) # type 0 Rebeca model 1 -> type 4: delayed drift + noise
-def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None, D=0.15, k=100):
+def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None):
     properties = cells.properties
     properties['parent'] = cells.mesh.face_ids #save the ids to control division parents-daugthers 
     properties['ageingrate'] = np.random.normal(1.0/lifespan,0.2/lifespan,len(cells)) #degradation rate per each cell
@@ -232,8 +232,8 @@ def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         N_G2=1.0/(t_G2)*(properties['age']-(t_G1+t_S))
         properties['zposn'] = np.minimum(1.0,np.maximum(N_G1,np.maximum(N_S,N_G2)))
 
-        properties['nucl_pos'] += k*(properties['zposn'] - properties['nucl_pos'])*dt \
-                                  + np.sqrt(2*D*dt)*np.random.randn(len(properties['nucl_pos']))
+        properties['nucl_pos'] += properties['k']*(properties['zposn'] - properties['nucl_pos'])*dt \
+                                  + np.sqrt(2*properties['D']*dt)*np.random.randn(len(properties['nucl_pos']))
         
         """Target area function depending age and z nuclei position"""
         properties['A0'] = (properties['age']+1.0)*0.5*(1.0+properties['nucl_pos']**2) # target area now depends on nucl_pos
@@ -271,7 +271,7 @@ def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
        
         
 # simulation with division and INM (no differentiation rate domain) # type 0 Rebeca model 1 -> type 5: drift = v0 & noise
-def simulation_with_division_model_2(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None, D=0.15, k=100): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
+def simulation_with_division_model_2(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
     properties = cells.properties
     properties['parent'] = cells.mesh.face_ids #save the ids to control division parents-daugthers 
     properties['ageingrate'] = np.random.normal(1.0/lifespan,0.2/lifespan,len(cells)) #degradation rate per each cell
@@ -329,10 +329,10 @@ def simulation_with_division_model_2(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         # #M_cells = np.where(t_G1+t_S+t_G2 < properties['age'])
         # #v0[M_cells] = 0
 
-        # properties['nucl_pos'] += v0*dt + np.sqrt(2*D*dt)*np.random.randn(len(properties['zposn']))
+        # properties['nucl_pos'] += v0*dt + np.sqrt(2*properties['D']*dt)*np.random.randn(len(properties['zposn']))
 
-        properties['nucl_pos'] += k*(properties['zposn'] - properties['nucl_pos'])*dt \
-                                  + np.sqrt(2*D*dt)*np.random.randn(len(properties['nucl_pos']))
+        properties['nucl_pos'] += properties['k']*(properties['zposn'] - properties['nucl_pos'])*dt \
+                                  + np.sqrt(2*properties['D']*dt)*np.random.randn(len(properties['nucl_pos']))
 
         """Target area function depending age and z nuclei position"""
         properties['A0'] = (properties['age']+1.0)*0.5*(1.0+properties['nucl_pos']**2) # target area now depends on nucl_pos_2
@@ -369,7 +369,7 @@ def simulation_with_division_model_2(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         yield cells
                
 # simulation with division and INM (no differentiation rate domain) # type 0 Rebeca model 3 -> type 6: delayed drift + noise + force
-def simulation_with_division_model_3(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None, D=0.15, k=100, s=0.2, a=0.2): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
+def simulation_with_division_model_3(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
     properties = cells.properties
     properties['parent'] = cells.mesh.face_ids #save the ids to control division parents-daugthers 
     properties['ageingrate'] = np.random.normal(1.0/lifespan,0.2/lifespan,len(cells)) #degradation rate per each cell
@@ -414,9 +414,9 @@ def simulation_with_division_model_3(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         N_G2=1.0/(t_G2)*(properties['age']-(t_G1+t_S))
         properties['zposn'] = np.minimum(1.0,np.maximum(N_G1,np.maximum(N_S,N_G2)))
 
-        properties['nucl_pos'] += k*(properties['zposn'] - properties['nucl_pos'])*dt \
-                                  + crowding_force(cells, a=a, s=s)*dt \
-                                  + np.sqrt(2*D*dt)*np.random.randn(len(properties['zposn']))
+        properties['nucl_pos'] += properties['k']*(properties['zposn'] - properties['nucl_pos'])*dt \
+                                  + crowding_force(cells, a=properties['a'], s=properties['s'])*dt \
+                                  + np.sqrt(2*properties['D']*dt)*np.random.randn(len(properties['zposn']))
 
         
         
@@ -455,7 +455,7 @@ def simulation_with_division_model_3(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         yield cells       
 
 # simulation with division and INM (no differentiation rate domain) # type 0 Rebeca model 4 -> type 7: drift = v0 & noise & force
-def simulation_with_division_model_4(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None, D=0.15, k=100, s=0.2, a=0.2): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
+def simulation_with_division_model_4(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand=None): #(cells,force,dt=0.001,T1_eps=0.04,lifespan=100.0,rand=Non
     properties = cells.properties
     properties['parent'] = cells.mesh.face_ids #save the ids to control division parents-daugthers 
     properties['ageingrate'] = np.random.normal(1.0/lifespan,0.2/lifespan,len(cells)) #degradation rate per each cell
@@ -511,8 +511,9 @@ def simulation_with_division_model_4(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         #M_cells = np.where(t_G1+t_S+t_G2 < properties['age'])
         #v0[M_cells] = 0
 
-        properties['nucl_pos'] += v0*dt + crowding_force(cells, a=a, s=s)*dt \
-                                  + np.sqrt(2*D*dt)*np.random.randn(len(properties['zposn'])) 
+        properties['nucl_pos'] += v0*dt \
+                                  + crowding_force(cells, a=properties['a'], s=properties['s'])*dt \
+                                  + np.sqrt(2*properties['D']*dt)*np.random.randn(len(properties['zposn'])) 
 
         
         """Target area function depending age and z nuclei position"""
@@ -1081,9 +1082,20 @@ def run_simulation_INM(x, timend,rand, sim_type):
     #sim_type 2 simulation_with_division_clone_differenciation_3stripes (2 population with and without diffentiation rate)
     #sim_type 3 simulation_with_division_clone_whole_tissue_differenciation (differentiation rate everywhere)
     # print(dt)
+
+    # parameters of the vertex model
     K=x[0]
     G=x[1]
     L=x[2]
+
+    # parameters of the nucleus A-B stochastic dynamics
+    k=x[3]
+    D=x[4]
+
+    # parameters of the crowding force
+    s=x[5]
+    a=x[6]
+
     rand1 = np.random.RandomState(123456) #I have modified the random function because RamdomState takes always the same numbers
     #mesh = init.cylindrical_hex_mesh(2,2,noise=0.2,rand=rand1)
     mesh = init.toroidal_hex_mesh(20,20,noise=0.2,rand=rand1)
@@ -1128,12 +1140,24 @@ def run_simulation_INM(x, timend,rand, sim_type):
         history[-1].properties['parent_group'] = np.zeros(len(history[-1].properties['parent_group']),dtype=int)
     # added by Rebeca:
     if sim_type == 4:
+        cells.properties['k']=k
+        cells.properties['D']=D
         history = run(simulation_with_division_model_1(cells,force,rand=rand),(timend)/dt,1.0/dt)
     if sim_type == 5:
+        cells.properties['k']=k
+        cells.properties['D']=D
         history = run(simulation_with_division_model_2(cells,force,rand=rand),(timend)/dt,1.0/dt)
     if sim_type == 6:
+        cells.properties['k']=k
+        cells.properties['D']=D
+        cells.properties['s']=s
+        cells.properties['a']=a
         history = run(simulation_with_division_model_3(cells,force,rand=rand),(timend)/dt,1.0/dt)
     if sim_type == 7:
+        cells.properties['k']=k
+        cells.properties['D']=D
+        cells.properties['s']=s
+        cells.properties['a']=a
         history = run(simulation_with_division_model_4(cells,force,rand=rand),(timend)/dt,1.0/dt)
    
  
