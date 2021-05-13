@@ -24,20 +24,18 @@ K=1.0
 # parameters of the nucleus A-B stochastic dynamics
 # sys.argv to pass from command line
 # call as, e.g.: python test_M1.py 100 0.15
-k=sys.argv[1] # 100
-D=sys.argv[2] # 0.15
-
-print(k, D)
+k=float(sys.argv[1]) # 100
+D=float(sys.argv[2]) # 0.15
 
 # parameters of the crowding force
 s=0.2
 a=1.
 
 # adding the nuclear movement parameters to 'params'
-params = [K,G,L,k,D,s,a]  # K=x[0],G=x[1],L=x[2]
+params = [K,G,L,k,D,s,a]
 
 np.random.seed(1999)
-rand = np.random.RandomState(1999) #random number to choose Lambda
+rand = np.random.RandomState(1999)
 
 no_simulations = 1
 #Cell_cycle_lengths_progenitors = []

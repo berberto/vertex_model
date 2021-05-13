@@ -319,20 +319,17 @@ def simulation_with_division_model_2(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         N_G2=1.0/(t_G2)*(properties['age']-(t_G1+t_S))
         properties['zposn'] = np.minimum(1.0,np.maximum(N_G1,np.maximum(N_S,N_G2)))
 
-        # v0 = np.zeros_like(properties['age']) # array for velocities
-        # G1_cells = np.where((0<=properties['age']) & (properties['age']<=t_G1))[0]
-        # v0[G1_cells] = -1.0/t_G1
-        # #S_cells = np.where(t_G1 < properties['age'] <= t_G1 + t_S)[0]
-        # #v0[S_cells] = 0
-        # G2_cells = np.where((t_G1+t_S<properties['age']) & (properties['age']<=t_G1+t_S+t_G2))[0]
-        # v0[G2_cells] = 1.0/t_G2
-        # #M_cells = np.where(t_G1+t_S+t_G2 < properties['age'])
-        # #v0[M_cells] = 0
+        v0 = np.zeros_like(properties['age']) # array for velocities
+        G1_cells = np.where((0<=properties['age']) & (properties['age']<=t_G1))[0]
+        v0[G1_cells] = -1.0/t_G1
+        #S_cells = np.where(t_G1 < properties['age'] <= t_G1 + t_S)[0]
+        #v0[S_cells] = 0
+        G2_cells = np.where((t_G1+t_S<properties['age']) & (properties['age']<=t_G1+t_S+t_G2))[0]
+        v0[G2_cells] = 1.0/t_G2
+        #M_cells = np.where(t_G1+t_S+t_G2 < properties['age'])
+        #v0[M_cells] = 0
 
-        # properties['nucl_pos'] += v0*dt + np.sqrt(2*properties['D']*dt)*np.random.randn(len(properties['zposn']))
-
-        properties['nucl_pos'] += properties['k']*(properties['zposn'] - properties['nucl_pos'])*dt \
-                                  + np.sqrt(2*properties['D']*dt)*np.random.randn(len(properties['nucl_pos']))
+        properties['nucl_pos'] += v0*dt + np.sqrt(2*properties['D']*dt)*np.random.randn(len(properties['zposn']))
 
         """Target area function depending age and z nuclei position"""
         properties['A0'] = (properties['age']+1.0)*0.5*(1.0+properties['nucl_pos']**2) # target area now depends on nucl_pos_2
@@ -1111,7 +1108,6 @@ def run_simulation_INM(x, timend,rand, sim_type):
     cells.properties['parent_group'] = bin_by_xpos(cells,np.cumsum([0.475,0.5,0.475]))
  
     print("Start thermalization...")
-    #history1 = run(simulation_with_division(cells,force,rand=rand1),2./dt,0.5/dt) # for checks
     history1 = run(simulation_with_division(cells,force,rand=rand1),200/dt,50.0/dt)
     cells = history1[-1].copy() #last timestep in the 'thermalization' phase -> use this as the initial condition for the actual run below
     # sampleset = np.random.choice(cells.mesh.face_ids,20, replace=False) #take 7 different ramdon cells to follow clones
