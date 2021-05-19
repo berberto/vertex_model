@@ -88,7 +88,7 @@ def simulation_with_division(cells,force,dt=dt,T1_eps=T1_eps,lifespan=100.0,rand
         #cells id where is true the division conditions: living cells & area greater than 2 & age cell in mitosis 
         ready = np.where(~cells.empty() & (cells.mesh.area>=A_c) & (cells.properties['age']>=(t_G1+t_S+t_G2)))[0]  
         if len(ready): #these are the cells ready to undergo division at the current timestep
-            print(ready)
+            # print(ready)
             properties['ageingrate'] =np.append(properties['ageingrate'], np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready))))
             properties['age'] = np.append(properties['age'],np.zeros(2*len(ready)))
             properties['parent'] = np.append(properties['parent'],np.repeat(properties['parent'][ready],2))  # Daugthers and parent have the same ids
@@ -201,7 +201,7 @@ def simulation_with_division_model_1(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         ready = np.where(~cells.empty() & (cells.mesh.area>=A_c) & (cells.properties['age']>=(t_G1+t_S+t_G2)))[0]  # divides if nucleus pos > 0.75
         properties['ageingrate'][ready] = 0
         if len(ready): #these are the cells ready to undergo division at the current timestep
-            print("cells dividing --> ", ready)
+            # print("cells dividing --> ", ready)
             properties['ageingrate'] = np.append(properties['ageingrate'], np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready))))
             #dummy = np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready)))
             #properties['ageingrate'] =np.append(properties['ageingrate'], 1.0/lifespan*np.ones(2*len(ready)))
@@ -291,7 +291,7 @@ def simulation_with_division_model_2(cells,force,dt=dt,T1_eps=T1_eps,lifespan=10
         ready = np.where(~cells.empty() & (cells.mesh.area>=A_c) & (cells.properties['age']>=(t_G1+t_S+t_G2)))[0]  # divides if nucleus pos > 0.75
         properties['ageingrate'][ready] = 0
         if len(ready): #these are the cells ready to undergo division at the current timestep
-            print("cells dividing --> ", ready)
+            # print("cells dividing --> ", ready)
             properties['ageingrate'] =np.append(properties['ageingrate'], np.abs(np.random.normal(1.0/lifespan,0.2/lifespan,2*len(ready))))
             properties['age'] = np.append(properties['age'],np.zeros(2*len(ready)))
             properties['parent'] = np.append(properties['parent'],np.repeat(properties['parent'][ready],2))  # Daugthers and parent have the same ids
