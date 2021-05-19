@@ -25,9 +25,14 @@ K=1.0
 # parameters of the nucleus A-B stochastic dynamics
 # sys.argv to pass from command line
 # call as, e.g.: python test_M1.py 100 0.15
-k=float(sys.argv[1]) # 100
-D=float(sys.argv[2]) # 0.15
-r=float(sys.argv[3])
+try:
+	k=float(sys.argv[1]) # 100
+	D=float(sys.argv[2]) # 0.15
+	r=float(sys.argv[3])
+except:
+	print("Missing command line parameters. Execute as\n")
+	print("   python test_M1.py  <k>  <D>  <r = a/k>\n")
+	exit()
 
 # parameters of the crowding force
 s=0.2
