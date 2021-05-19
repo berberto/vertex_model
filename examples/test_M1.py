@@ -27,10 +27,11 @@ K=1.0
 # call as, e.g.: python test_M1.py 100 0.15
 k=float(sys.argv[1]) # 100
 D=float(sys.argv[2]) # 0.15
+r=float(sys.argv[3])
 
 # parameters of the crowding force
 s=0.2
-a=1.
+a=r*k
 
 # adding the nuclear movement parameters to 'params'
 params = [K,G,L,k,D,s,a]
@@ -49,7 +50,7 @@ np.random.seed(1999)
 rand = np.random.RandomState(1999)
 no_simulations = 5
 
-for run in range(1,no_simulations):
+for run in range(1,no_simulations+1):
 	run_sim(run)
 
 
