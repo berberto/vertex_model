@@ -349,7 +349,7 @@ def _transition(mesh, eps):
         #print to_del, ids_removed
         # if ~(ids_t1==np.delete(ids_t1,ids_removed)):
         #     print 'Ids T1 to remove:', ids_t1, ids_removed, np.delete(ids_t1,ids_removed)
-        print(ids_removed, to_del)
+        # print(ids_removed, to_del)
     mesh = mesh.copy()
     mesh.edges = Edges(reverse)
     mesh.vertices = vertices
