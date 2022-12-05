@@ -6,6 +6,9 @@ Python 3 version of this [original code](https://bitbucket.org/Pigueco/vertex_mo
 
 > Guerrero, P., et al. (2019). Neuronal differentiation influences progenitor arrangement in the vertebrate neuroepithelium. *Development*, **146**(23) [https://doi.org/10.1242/dev.176297](https://doi.org/10.1242/dev.176297)
 
+**Note**: the original code presents a bug in the T1 transitions, and this version provides a fix (see below).
+
+
 ### Requirements
 
 * Python 3.7.9
@@ -50,3 +53,13 @@ The main functions to look at, in order to see how to set differentiation rates 
 
 These are the functions to be called for a simulation run.
 The function `run_simulation_INM` is a wrapper for these function, and allows to select which of these to be run, along with other options.
+
+### Bug fix
+
+The following bug was found in the implementation of the T1 transitions in the original code, resulting in frequently repeating T1 transitions on the same edge. This has been now fixed in function `_T1` in `mesh.py`.
+
+In the images below, orange and blue are (zoom-in of) the mesh configuration respectively before and after the T1 transition.
+
+Old code | New code
+- | -
+![old code](examples/T1_old.png "old code") | ![new code](examples/T1_new.png "new code")
